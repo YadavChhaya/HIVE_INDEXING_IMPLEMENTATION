@@ -1,0 +1,91 @@
+hive shell
+
+//CREATION OF TABLES
+create table olympic_compact(athelete STRING,age INT,country STRING,year STRING,closing STRING,sport STRING,gold INT,silver INT,bronze INT,total INT) row format delimited fields terminated by '\t' stored as textfile;
+
+create table olympic2_bitmap(athelete STRING,age INT,country STRING,year STRING,closing STRING,sport STRING,gold INT,silver INT,bronze INT,total INT) row format delimited fields terminated by '\t' stored as textfile;
+
+create table olympic12_compact_bitmap(athelete STRING,age INT,country STRING,year STRING,closing STRING,sport STRING,gold INT,silver INT,bronze INT,total INT) row format delimited fields terminated by '\t' stored as textfile;
+
+//LOADING SAME DATA INTO ALL 3 TABLES
+LOAD DATA LOCAL INPATH '/home/cloudera/Downloads/olympic_data.csv' OVERWRITE INTO TABLE olympic_compact
+;
+
+LOAD DATA LOCAL INPATH '/home/cloudera/Downloads/olympic_data.csv' OVERWRITE INTO TABLE
+olympic2_bitmap;
+
+LOAD DATA LOCAL INPATH '/home/cloudera/Downloads/olympic_data.csv' OVERWRITE INTO TABLE
+olympic12_compact_bitmap
+;
+
+hive> show tblproperties olympic_compact;
+OK
+COLUMN_STATS_ACCURATE	true
+numFiles	1
+numRows	0
+rawDataSize	0
+totalSize	518669
+transient_lastDdlTime	1534577590
+Time taken: 0.1 seconds, Fetched: 6 row(s)
+hive> 
+
+
+
+
+//CREATION OF BITMAP INDEX 
+create index bitmapIndex ON table olympic2_bitmap(age)
+AS 'BITMAP'
+WITH DEFERRED REBUILD;
+
+//BUILDING INDEX
+ALTER INDEX bitmapIndex on olympic2_bitmap REBUILD;
+
+//CREATION OF COMPACT INDEX
+CREATE index compactIndex ON table olympic_compact(age) 
+AS 'org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler'
+WITH DEFERRED REBUILD;
+
+//BUILDING INDEX
+ALTER INDEX compactIndex on olympic_compact REBUILD;
+
+//CREATION OF BITMAP INDEX 
+
+create index bitmapIndex  ON TABLE olympic12_compact_bitmap(age)
+AS 'BITMAP'
+WITH DEFERRED REBUILD;
+
+//BUILDING INDEX
+ALTER INDEX bitmapIndex on olympic12_compact_bitmap REBUILD;
+
+//CREATION OF COMPACT INDEX
+CREATE index compactIndex  On TABLE olympic12_compact_bitmap(age)
+AS 'org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler'
+WITH DEFERRED REBUILD;
+
+//BUILDING INDEX
+ALTER INDEX compactIndex on olympic12_compact_bitmap REBUILD;
+
+//DISPLAYING THE INDEXES PRESENT IN EXISTING TABLES
+show formatted index on olympic2_bitmap;
+show formatted index on olympic_compact;
+show formatted index on olympic12_compact_bitmap;
+
+//RUNNING QUERIES ON INDEXED COLUMN
+SELECT avg(age) from olympic2_bitmap;
+Time taken: 48.613 seconds, Fetched: 1 row(s)
+
+SELECT avg(age) from olympic_compact;
+Time taken: 52.495 seconds, Fetched: 1 row(s)
+
+SELECT avg(age) from olympic12_compact_bitmap;
+Time taken: 53.126 seconds, Fetched: 1 row(s)
+
+//having multiple indexes may lead to performance degradation
+
+//DROPPING INDEX
+drop index compactIndex  On  olympic12_compact_bitmap;
+
+
+
+
+
